@@ -40,10 +40,11 @@ Utilizado 03 sensores de nível de água para leitura do nível de água.
 
 
 ## FUNCOES DOS SENSORES
-faz a leitura dos sensores:  
-readSensorCheio()  
-readSensorMeio()  
-readSensorVazio()  
+readSensorCheio()  //leitura do sensor de nível de água - cheio  
+readSensorMeio()  //leitura do sensor de nível de água - meio  
+readSensorVazio()  //leitura do sensor de nível de água - vazio    
+readButton()  //leitura do botão de ligar a bomba - pressionar por 02 segundos  
+setModuleRele(bool status)  //aciona o módulo relé - bomba dágua  
 
 ## CONFIGURAÇÕES REDE MESH
 - ID: ID do módulo no projeto JARVIS  
@@ -52,11 +53,13 @@ readSensorVazio()
 - STATION_CHANNEL: canal do AP (necessário configurar o AP local para canal fixo)  
 
 ## FUNÇÕES REDE MESH
-getMessageHello(JsonDocument myObject); imprime as msg hello recebidas  
-sendMessageHello(); envia msg hello a cada 11s  
-checkConnection(); reinicia o ESP se perder conexao a rede mesh  
+getMessageHello(JsonDocument myObject)  //imprime as msg hello recebidas  
+sendMessageHello()  //envia msg hello a cada 11s  
+checkConnection()  //reinicia o ESP se perder conexao a rede mesh  
 
-sendSensorReandingNivelCaixaDagua(); envia a leitura dos sensores a cada 5s  
+sendSensorReandingNivelCaixaDagua()  //envia a leitura dos sensores de nível de água a cada 5s  
+void sendStatusRele()  //envia o status do Modulo rele a cada 5s (true-desligado / false-ligado)
+void setStatusSensors(JsonDocument doc)  //liga/desliga o Modulo Rele - chama a funcao setModuleRele(status)
 
 ## Observações:
 - Somente um dispositivo pode ser o nó raiz na malha (root)  
