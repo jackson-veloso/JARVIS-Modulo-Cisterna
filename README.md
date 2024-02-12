@@ -31,6 +31,12 @@ Utilizado 03 sensores de nível de água para leitura do nível de água.
     "description":"chave rele",  
     "status":false  
 }  
+{
+    "code":200,  
+    "idSensor":1402,  
+    "description":"sensor DHT11",  
+    "temp":33,"humi":60  
+}
 {  
     "code":300,  
     “idModule”: 2,  

@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include "ArduinoJson.h"
 #include "painlessMesh.h"
+#include "DHT.h"
 
 #define MESH_PREFIX "whateverYouLike"
 #define MESH_PASSWORD "somethingSneaky"
@@ -11,8 +12,8 @@
 #define ID 2
 
 // Configurar a rede WIFI
-#define STATION_SSID "ssid"
-#define STATION_PASSWORD "senha da rede"
+#define STATION_SSID "Grogu"
+#define STATION_PASSWORD "123@Mudar"
 #define STATION_CHANNEL 3
 
 // #######################################
@@ -22,6 +23,9 @@
 #define pin_SensorVazio 27
 #define pin_Rele 19
 #define pin_Button 21
+#define pin_DHT11 4
+
+DHT dht(pin_DHT11, DHT11);
 
 bool statusSensorCheio = LOW, statusSensorMeio = LOW, statusSensorVazio = LOW;
 bool ultimoStatusSensorCheio = LOW, ultimoStatusSensorMeio = LOW, ultimoStatusSensorVazio = LOW;
@@ -113,7 +117,7 @@ void readButton()
     tempoUltimoDebounceButton = millis();
   }
 
-  if ((millis() - tempoUltimoDebounceButton) > 2000) //botão acionado após 02 segundos
+  if ((millis() - tempoUltimoDebounceButton) > 2000) // botão acionado após 02 segundos
   {
     if (leitura != LOW)
     {
@@ -173,12 +177,14 @@ void sendMessageHello();
 void checkConnection();
 void sendSensorReandingNivelCaixaDagua();
 void sendStatusRele();
+void sendSensorDHT11();
 void setStatusSensors(JsonDocument doc);
 
 Task taskSendMessageHello(TASK_SECOND * 11, TASK_FOREVER, &sendMessageHello);
 Task taskCheckConnection(TASK_SECOND * 20, TASK_FOREVER, &checkConnection);
 Task taskSendSensorReandingNivelCaixaDagua(TASK_SECOND * 5, TASK_FOREVER, &sendSensorReandingNivelCaixaDagua);
 Task taskSendStatusRele(TASK_SECOND * 5, TASK_FOREVER, &sendStatusRele);
+Task taskSendSensorDHT11(TASK_SECOND * 5, TASK_FOREVER, &sendSensorDHT11);
 
 void sendSensorReandingNivelCaixaDagua()
 {
@@ -206,6 +212,27 @@ void sendStatusRele()
   doc["idSensor"] = 1102;
   doc["description"] = "chave rele";
   doc["status"] = statusRele;
+
+  String json;
+  serializeJson(doc, json);
+  mesh.sendBroadcast(json);
+  Serial.print("Enviando leitura de sensores = ");
+  Serial.println(json);
+}
+
+void sendSensorDHT11()
+{
+  JsonDocument doc;
+
+  doc["code"] = 200;
+  doc["idSensor"] = 1402;
+  doc["description"] = "sensor DHT11";
+
+  float humi = dht.readHumidity();
+  float temp = dht.readTemperature();
+
+  doc["temp"] = roundf(temp);
+  doc["humi"] = roundf(humi);
 
   String json;
   serializeJson(doc, json);
@@ -330,6 +357,15 @@ void setup()
 {
   Serial.begin(115200);
 
+  // Configuracao dos Sensores de Nivel de Agua
+  pinMode(pin_SensorCheio, INPUT);
+  pinMode(pin_SensorMeio, INPUT);
+  pinMode(pin_SensorVazio, INPUT);
+  pinMode(pin_Button, INPUT);
+  pinMode(pin_Rele, OUTPUT);
+
+  dht.begin();
+
   mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION);
 
   // Configurar o canal do AP, deverá ser o mesmo para toda a rede mesh e roteador wifi
@@ -344,11 +380,13 @@ void setup()
   userScheduler.addTask(taskCheckConnection);
   userScheduler.addTask(taskSendSensorReandingNivelCaixaDagua);
   userScheduler.addTask(taskSendStatusRele);
+  userScheduler.addTask(taskSendSensorDHT11);
 
   taskSendMessageHello.enable();
   taskCheckConnection.enable();
   taskSendSensorReandingNivelCaixaDagua.enable();
   taskSendStatusRele.enable();
+  taskSendSensorDHT11.enable();
 
   // This node and all other nodes should ideally know the mesh contains a root, so call this on all nodes
   mesh.setContainsRoot(true);
@@ -367,13 +405,6 @@ void setup()
   // timer, tempo (us), repetição
   timerAlarmWrite(timer, 10000000, true); // reinicia após 10s
   timerAlarmEnable(timer);                // habilita a interrupção
-
-  // Configuracao dos Sensores de Nivel de Agua
-  pinMode(pin_SensorCheio, INPUT);
-  pinMode(pin_SensorMeio, INPUT);
-  pinMode(pin_SensorVazio, INPUT);
-  pinMode(pin_Button, INPUT);
-  pinMode(pin_Rele, OUTPUT);
 }
 
 void loop()
@@ -389,4 +420,5 @@ void loop()
   readButton();
   // WATCHDOGs
   timerWrite(timer, 0); // reseta o temporizador (alimenta o watchdog)
+
 }
